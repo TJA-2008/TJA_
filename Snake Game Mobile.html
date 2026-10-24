@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#14291d">
+  <title>Snake</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #102219;
+      color: #f2f4dc;
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      margin: 0;
+      overflow: hidden;
+      overscroll-behavior: none;
+      background:
+        radial-gradient(ellipse at 50% 0%, #29452f 0%, transparent 55%),
+        #102219;
+      touch-action: manipulation;
+      user-select: none;
+    }
+
+    main {
+      width: min(100%, 560px);
+      min-height: 100vh;
+      min-height: 100dvh;
+      margin: 0 auto;
+      padding: max(14px, env(safe-area-inset-top)) 18px max(14px, env(safe-area-inset-bottom));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(12px, 2.4dvh, 22px);
+    }
+
+    header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border: 1px solid #719050;
+      border-radius: 13px;
+      background: #314e32;
+      color: #b7cf75;
+      font-size: 22px;
+      line-height: 1;
+      box-shadow: inset 0 1px 0 #ffffff20, 0 5px 16px #0003;
+    }
+
+    h1 {
+      margin: 0;
+      color: #f0edcf;
+      font-size: 20px;
+      font-weight: 850;
+      letter-spacing: .12em;
+    }
+
+    .subtitle {
+      margin: 2px 0 0;
+      color: #a8b79a;
+      font-size: 11px;
+      letter-spacing: .06em;
+    }
+
+    .score-card {
+      min-width: 84px;
+      padding: 7px 12px;
+      border: 1px solid #ffffff1c;
+      border-radius: 13px;
+      background: #1b3224;
+      text-align: right;
+    }
+
+    .score-caption {
+      display: block;
+      color: #a8b79a;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    #score {
+      color: #f1d477;
+      font-size: 20px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      line-height: 1.1;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .wallet {
+      padding: 8px 10px;
+      border: 1px solid #ffffff1c;
+      border-radius: 12px;
+      background: #1b3224;
+      color: #f0b89d;
+      font-size: 12px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .shop-button {
+      min-height: 40px;
+      padding: 0 11px;
+      border: 1px solid #8fa46b66;
+      border-radius: 12px;
+      background: linear-gradient(#3d5a3b, #2a422e);
+      color: #e8edcf;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .shop-button:disabled {
+      cursor: not-allowed;
+      opacity: .48;
+    }
+
+    dialog {
+      width: min(92vw, 420px);
+      max-height: min(82dvh, 620px);
+      padding: 0;
+      overflow: auto;
+      border: 1px solid #d5dfad45;
+      border-radius: 20px;
+      background: #1b3026;
+      color: #f2f4dc;
+      box-shadow: 0 18px 60px #0008;
+    }
+
+    dialog::backdrop {
+      background: #07120bd9;
+      backdrop-filter: blur(4px);
+    }
+
+    .shop-content {
+      padding: 20px;
+    }
+
+    .shop-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 4px;
+    }
+
+    .shop-heading h2 {
+      margin: 0;
+      font-size: 22px;
+      letter-spacing: .06em;
+    }
+
+    .shop-subtitle {
+      margin: 5px 0 14px;
+      color: #bac6ac;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .close-shop {
+      width: 36px;
+      height: 36px;
+      flex: 0 0 auto;
+      border: 1px solid #ffffff20;
+      border-radius: 11px;
+      background: #ffffff0d;
+      color: #f2f4dc;
+      font-size: 20px;
+    }
+
+    .shop-balance {
+      margin: 0 0 12px;
+      color: #f0b89d;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .skin-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .skin-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      border: 1px solid #ffffff12;
+      border-radius: 14px;
+      background: #29452f;
+    }
+
+    .skin-preview {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      flex: 0 0 auto;
+      border: 2px solid var(--skin-outline);
+      border-radius: 50%;
+      background: var(--skin-head);
+      box-shadow: inset -5px -3px 0 var(--skin-shadow);
+    }
+
+    .skin-preview::after {
+      position: absolute;
+      top: 7px;
+      right: 5px;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #25271d;
+      content: "";
+    }
+
+    .skin-name {
+      min-width: 0;
+      flex: 1;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .skin-price {
+      display: block;
+      margin-top: 2px;
+      color: #b8c2ae;
+      font-size: 11px;
+      font-weight: 550;
+    }
+
+    .skin-action {
+      min-height: 36px;
+      padding: 0 10px;
+      border: 1px solid #8fa46b55;
+      border-radius: 10px;
+      background: #435b32;
+      color: #f2f4dc;
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .skin-action:disabled {
+      cursor: default;
+      opacity: .55;
+    }
+
+    .shop-message {
+      min-height: 20px;
+      margin: 12px 0 0;
+      color: #ffd477;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .board-wrap {
+      position: relative;
+      width: min(100%, 80dvh);
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      border: 2px solid #637c4d;
+      border-radius: 18px;
+      background: #293f2a;
+      box-shadow:
+        0 18px 44px #0005,
+        inset 0 1px 0 #ffffff35,
+        0 0 0 5px #ffffff08;
+      touch-action: none;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+      background: #0b1b12a8;
+      backdrop-filter: blur(3px);
+    }
+
+    .overlay[hidden] {
+      display: none;
+    }
+
+    .overlay-card {
+      width: min(100%, 300px);
+      padding: 22px 20px;
+      border: 1px solid #d5dfad45;
+      border-radius: 20px;
+      background: #1b3026ed;
+      text-align: center;
+      box-shadow: 0 14px 40px #0006;
+    }
+
+    .overlay-card h2 {
+      margin: 0;
+      color: #f2edcf;
+      font-size: 26px;
+      letter-spacing: .02em;
+    }
+
+    .overlay-card p {
+      margin: 8px 0 18px;
+      color: #bac6ac;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    button {
+      border: 0;
+      color: #f6f5e7;
+      font: inherit;
+      font-weight: 750;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+
+    .primary {
+      min-height: 48px;
+      padding: 0 26px;
+      border: 1px solid #d5e39b55;
+      border-radius: 14px;
+      background: linear-gradient(#91aa50, #6d873d);
+      box-shadow: 0 5px 0 #43582d, 0 8px 20px #0003;
+      color: #152117;
+      font-size: 15px;
+    }
+
+    .primary:active {
+      transform: translateY(2px);
+      box-shadow: 0 3px 0 #43582d, 0 5px 14px #0003;
+    }
+
+    .controls {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .hint {
+      max-width: 170px;
+      color: #b1beaa;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .hint strong {
+      color: #e6e8cf;
+      font-weight: 700;
+    }
+
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 48px);
+      grid-template-rows: repeat(2, 44px);
+      gap: 5px;
+      flex: 0 0 auto;
+    }
+
+    .dpad button,
+    .pause-button {
+      border: 1px solid #8fa46b66;
+      background: linear-gradient(#3d5a3b, #2a422e);
+      color: #e8edcf;
+      box-shadow: inset 0 1px 0 #ffffff18, 0 4px 10px #0003;
+    }
+
+    .dpad button {
+      display: grid;
+      place-items: center;
+      border-radius: 13px;
+      font-size: 21px;
+    }
+
+    .dpad button:active,
+    .pause-button:active {
+      transform: translateY(1px);
+      background: #526f42;
+    }
+
+    [data-dir="up"] { grid-column: 2; grid-row: 1; }
+    [data-dir="left"] { grid-column: 1; grid-row: 2; }
+    [data-dir="down"] { grid-column: 2; grid-row: 2; }
+    [data-dir="right"] { grid-column: 3; grid-row: 2; }
+
+    .pause-button {
+      min-height: 42px;
+      padding: 0 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      letter-spacing: .04em;
+    }
+
+    footer {
+      color: #839580;
+      font-size: 11px;
+      text-align: center;
+    }
+
+    .privacy-button {
+      margin-left: 5px;
+      padding: 0;
+      background: transparent;
+      color: #afc58a;
+      font-size: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    @media (max-height: 690px) and (orientation: landscape) {
+      main {
+        width: min(100%, 860px);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 180px;
+        grid-template-rows: auto 1fr auto;
+        gap: 8px 18px;
+      }
+
+      header {
+        grid-column: 1 / -1;
+      }
+
+      .board-wrap {
+        width: min(100%, 91dvh);
+        justify-self: center;
+        grid-row: 2 / 4;
+      }
+
+      .controls {
+        height: 100%;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .hint {
+        text-align: center;
+      }
+    }
+
+    @media (max-width: 370px) {
+      main {
+        padding-right: 12px;
+        padding-left: 12px;
+      }
+
+      .dpad {
+        grid-template-columns: repeat(3, 43px);
+        grid-template-rows: repeat(2, 40px);
+      }
+
+      .brand {
+        gap: 6px;
+      }
+
+      .brand-mark {
+        width: 32px;
+        height: 32px;
+      }
+
+      h1 {
+        font-size: 17px;
+      }
+
+      .header-actions {
+        gap: 5px;
+      }
+
+      .wallet {
+        padding: 7px;
+        font-size: 11px;
+      }
+
+      .shop-button {
+        padding: 0 8px;
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">蛇</div>
+        <div>
+          <h1>SNAKE</h1>
+          <p class="subtitle">A little garden chase</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="score-card" aria-live="polite">
+          <span class="score-caption">Score</span>
+          <span id="score">0</span>
+        </div>
+        <span id="wallet" class="wallet" aria-live="polite">🍎 0</span>
+        <button id="shop-button" class="shop-button" type="button">Skins</button>
+      </div>
+    </header>
+
+    <section class="board-wrap" aria-label="Snake game board">
+      <canvas id="game" width="800" height="600" aria-label="Game board"></canvas>
+      <div id="overlay" class="overlay">
+        <div class="overlay-card">
+          <h2 id="overlay-title">Ready to play?</h2>
+          <p id="overlay-message">Swipe anywhere on the board or use the direction pad to guide the snake.</p>
+          <button id="start-button" class="primary" type="button">Start game</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="controls" aria-label="Game controls">
+      <div class="hint"><strong>Swipe</strong> on the board or tap a direction.<br>Eat apples to grow and speed up.</div>
+      <div class="dpad" aria-label="Direction pad">
+        <button type="button" data-dir="up" aria-label="Move up">▲</button>
+        <button type="button" data-dir="left" aria-label="Move left">◀</button>
+        <button type="button" data-dir="down" aria-label="Move down">▼</button>
+        <button type="button" data-dir="right" aria-label="Move right">▶</button>
+      </div>
+      <button id="pause-button" class="pause-button" type="button" aria-label="Pause game">Pause</button>
+    </section>
+
+    <footer>
+      Keep growing. Don't bump into yourself.
+      <button id="privacy-button" class="privacy-button" type="button">Privacy</button>
+    </footer>
+  </main>
+
+  <dialog id="skin-shop" aria-labelledby="shop-title">
+    <div class="shop-content">
+      <div class="shop-heading">
+        <h2 id="shop-title">Skin Shop</h2>
+        <button id="close-shop" class="close-shop" type="button" aria-label="Close skin shop">×</button>
+      </div>
+      <p class="shop-subtitle">Collect apples during your runs and spend them on a new look.</p>
+      <p id="shop-balance" class="shop-balance">Apples: 0</p>
+      <div id="skin-list" class="skin-list"></div>
+      <p id="shop-message" class="shop-message" aria-live="polite"></p>
+    </div>
+  </dialog>
+
+  <dialog id="privacy-dialog" aria-labelledby="privacy-title">
+    <div class="shop-content">
+      <div class="shop-heading">
+        <h2 id="privacy-title">Privacy</h2>
+        <button id="close-privacy" class="close-shop" type="button" aria-label="Close privacy information">×</button>
+      </div>
+      <p class="shop-subtitle">Cid The Snake does not collect, transmit, or share personal information. It has no accounts, ads, analytics, or network access.</p>
+      <p class="shop-subtitle">Your score-independent apple balance, unlocked skins, and selected skin are saved locally on this device. This saved game data is not sent to the developer or any third party. Uninstalling the app or clearing its storage deletes it.</p>
+    </div>
+  </dialog>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("game");
+      const ctx = canvas.getContext("2d");
+      const scoreLabel = document.getElementById("score");
+      const overlay = document.getElementById("overlay");
+      const overlayTitle = document.getElementById("overlay-title");
+      const overlayMessage = document.getElementById("overlay-message");
+      const startButton = document.getElementById("start-button");
+      const pauseButton = document.getElementById("pause-button");
+      const shopButton = document.getElementById("shop-button");
+      const walletLabel = document.getElementById("wallet");
+      const shopDialog = document.getElementById("skin-shop");
+      const closeShopButton = document.getElementById("close-shop");
+      const shopBalance = document.getElementById("shop-balance");
+      const skinList = document.getElementById("skin-list");
+      const shopMessage = document.getElementById("shop-message");
+      const privacyDialog = document.getElementById("privacy-dialog");
+      const privacyButton = document.getElementById("privacy-button");
+      const closePrivacyButton = document.getElementById("close-privacy");
+
+      const columns = 20;
+      const rows = 15;
+      const cell = canvas.width / columns;
+      const storageKey = "garden-snake-progress";
+      const skins = {
+        Forest: { cost: 0, body: "#789447", dark: "#435b32", head: "#a3aa70", belly: "#c3b783", outline: "#344a2c" },
+        Ocean: { cost: 35, body: "#4e9aa6", dark: "#285d70", head: "#82bac0", belly: "#b3d2c6", outline: "#214b58" },
+        Ember: { cost: 80, body: "#c76c42", dark: "#7b3e32", head: "#d99a62", belly: "#e3c19a", outline: "#60332b" },
+        Violet: { cost: 160, body: "#8b75b5", dark: "#51416f", head: "#b1a1ce", belly: "#d6c9e0", outline: "#403653" },
+        "Royal Gold": { cost: 300, body: "#d0a83f", dark: "#80642b", head: "#e7cb75", belly: "#f0dca3", outline: "#5d4922" },
+      };
+      const grass = [];
+      let snake = [];
+      let apple = { x: 14, y: 7 };
+      let direction = { x: 1, y: 0 };
+      let queuedDirection = { x: 1, y: 0 };
+      let score = 0;
+      let state = "ready";
+      let lastFrame = 0;
+      let elapsed = 0;
+      let bankedApples = 0;
+      let unlockedSkins = ["Forest"];
+      let selectedSkin = "Forest";
+      let storageAvailable = true;
+
+      function loadProgress() {
+        try {
+          const saved = JSON.parse(localStorage.getItem(storageKey) || "{}");
+          bankedApples = Number.isSafeInteger(saved.apples) && saved.apples >= 0 ? saved.apples : 0;
+          unlockedSkins = Array.isArray(saved.unlockedSkins)
+            ? [...new Set(saved.unlockedSkins.filter((name) => Object.prototype.hasOwnProperty.call(skins, name)))]
+            : [];
+          if (!unlockedSkins.includes("Forest")) unlockedSkins.unshift("Forest");
+          selectedSkin = unlockedSkins.includes(saved.selectedSkin) ? saved.selectedSkin : "Forest";
+        } catch {
+          storageAvailable = false;
+          bankedApples = 0;
+          unlockedSkins = ["Forest"];
+          selectedSkin = "Forest";
+        }
+        updateWallet();
+      }
+
+      function saveProgress() {
+        if (!storageAvailable) return false;
+        try {
+          localStorage.setItem(storageKey, JSON.stringify({
+            apples: bankedApples,
+            unlockedSkins,
+            selectedSkin,
+          }));
+          return true;
+        } catch {
+          storageAvailable = false;
+          shopMessage.textContent = "Saving is unavailable in this browser. Your balance will reset when you leave.";
+          return false;
+        }
+      }
+
+      function updateWallet() {
+        walletLabel.textContent = `🍎 ${bankedApples}`;
+        shopBalance.textContent = `Apples available: ${bankedApples}`;
+      }
+
+      function openShop() {
+        if (state === "playing" || shopDialog.open) return;
+        shopMessage.textContent = storageAvailable
+          ? ""
+          : "Saving is unavailable in this browser. Your balance will reset when you leave.";
+        renderShop();
+        shopDialog.showModal();
+      }
+
+      function renderShop() {
+        skinList.replaceChildren();
+        updateWallet();
+        for (const [name, palette] of Object.entries(skins)) {
+          const row = document.createElement("div");
+          row.className = "skin-row";
+          const preview = document.createElement("span");
+          preview.className = "skin-preview";
+          preview.style.setProperty("--skin-head", palette.head);
+          preview.style.setProperty("--skin-shadow", palette.dark);
+          preview.style.setProperty("--skin-outline", palette.outline);
+
+          const nameLabel = document.createElement("span");
+          nameLabel.className = "skin-name";
+          nameLabel.append(document.createTextNode(name));
+          const price = document.createElement("span");
+          price.className = "skin-price";
+          price.textContent = palette.cost === 0 ? "Free" : `${palette.cost} apples`;
+          nameLabel.append(price);
+
+          const action = document.createElement("button");
+          action.type = "button";
+          action.className = "skin-action";
+          const owned = unlockedSkins.includes(name);
+          if (owned && selectedSkin === name) {
+            action.textContent = "Equipped";
+            action.disabled = true;
+          } else if (owned) {
+            action.textContent = "Equip";
+            action.addEventListener("click", () => equipSkin(name));
+          } else if (bankedApples < palette.cost) {
+            action.textContent = `Need ${palette.cost - bankedApples} more`;
+            action.disabled = true;
+          } else {
+            action.textContent = `Buy · ${palette.cost}`;
+            action.addEventListener("click", () => buySkin(name));
+          }
+
+          row.append(preview, nameLabel, action);
+          skinList.append(row);
+        }
+      }
+
+      function buySkin(name) {
+        const palette = skins[name];
+        if (!palette || unlockedSkins.includes(name) || bankedApples < palette.cost) return;
+        bankedApples -= palette.cost;
+        unlockedSkins.push(name);
+        selectedSkin = name;
+        saveProgress();
+        renderShop();
+        draw();
+      }
+
+      function equipSkin(name) {
+        if (!unlockedSkins.includes(name)) return;
+        selectedSkin = name;
+        saveProgress();
+        renderShop();
+        draw();
+      }
+
+      let seed = 23;
+      function random() {
+        seed = (seed * 16807) % 2147483647;
+        return (seed - 1) / 2147483646;
+      }
+
+      for (let i = 0; i < 460; i += 1) {
+        grass.push({
+          x: random() * canvas.width,
+          y: random() * canvas.height,
+          height: 3 + Math.floor(random() * 8),
+          lean: (random() - 0.5) * 8,
+          shade: ["#48633e", "#547247", "#3b5938", "#62794a"][i % 4],
+        });
+      }
+
+      function showOverlay(title, message, buttonText) {
+        overlayTitle.textContent = title;
+        overlayMessage.textContent = message;
+        startButton.textContent = buttonText;
+        overlay.hidden = false;
+      }
+
+      function hideOverlay() {
+        overlay.hidden = true;
+      }
+
+      function placeApple() {
+        const openCells = [];
+        for (let y = 0; y < rows; y += 1) {
+          for (let x = 0; x < columns; x += 1) {
+            if (!snake.some((part) => part.x === x && part.y === y)) {
+              openCells.push({ x, y });
+            }
+          }
+        }
+
+        if (openCells.length === 0) {
+          state = "won";
+          shopButton.disabled = false;
+          showOverlay("Garden cleared!", `You ate all ${score} apples.`, "Play again");
+          return;
+        }
+        apple = openCells[Math.floor(Math.random() * openCells.length)];
+      }
+
+      function startGame() {
+        snake = [
+          { x: 8, y: 7 },
+          { x: 7, y: 7 },
+          { x: 6, y: 7 },
+        ];
+        direction = { x: 1, y: 0 };
+        queuedDirection = { x: 1, y: 0 };
+        score = 0;
+        scoreLabel.textContent = "0";
+        state = "playing";
+        shopButton.disabled = true;
+        elapsed = 0;
+        lastFrame = 0;
+        placeApple();
+        hideOverlay();
+        pauseButton.textContent = "Pause";
+        pauseButton.setAttribute("aria-label", "Pause game");
+        requestAnimationFrame(gameLoop);
+      }
+
+      function setDirection(next) {
+        if (state !== "playing") return;
+        if (next.x === -direction.x && next.y === -direction.y) return;
+        queuedDirection = next;
+      }
+
+      function move() {
+        direction = queuedDirection;
+        const head = {
+          x: snake[0].x + direction.x,
+          y: snake[0].y + direction.y,
+        };
+
+        const eating = head.x === apple.x && head.y === apple.y;
+        const collisionBody = eating ? snake : snake.slice(0, -1);
+        if (
+          head.x < 0 || head.x >= columns ||
+          head.y < 0 || head.y >= rows ||
+          collisionBody.some((part) => part.x === head.x && part.y === head.y)
+        ) {
+          state = "over";
+          shopButton.disabled = false;
+          showOverlay("Game over", `You collected ${score} ${score === 1 ? "apple" : "apples"}.`, "Try again");
+          return;
+        }
+
+        snake.unshift(head);
+        if (eating) {
+          score += 1;
+          bankedApples += 1;
+          scoreLabel.textContent = String(score);
+          updateWallet();
+          saveProgress();
+          placeApple();
+        } else {
+          snake.pop();
+        }
+      }
+
+      function drawGrass() {
+        ctx.fillStyle = "#29432e";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (let i = 0; i < 26; i += 1) {
+          const x = (i * 173 + 47) % canvas.width;
+          const y = (i * 97 + 31) % canvas.height;
+          ctx.fillStyle = i % 2 ? "#2e4930" : "#304c32";
+          ctx.beginPath();
+          ctx.ellipse(x, y, 18 + (i % 8), 6 + (i % 4), 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.lineCap = "round";
+        for (const blade of grass) {
+          ctx.strokeStyle = blade.shade;
+          ctx.lineWidth = blade.height > 7 ? 1.7 : 1;
+          ctx.beginPath();
+          ctx.moveTo(blade.x, blade.y);
+          ctx.quadraticCurveTo(
+            blade.x + blade.lean * 0.4,
+            blade.y - blade.height * 0.55,
+            blade.x + blade.lean,
+            blade.y - blade.height,
+          );
+          ctx.stroke();
+        }
+
+        ctx.strokeStyle = "#718155";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+      }
+
+      function drawApple() {
+        const x = apple.x * cell;
+        const y = apple.y * cell;
+        ctx.fillStyle = "#17251a88";
+        ctx.beginPath();
+        ctx.ellipse(x + 20, y + 39, 13, 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        const appleGradient = ctx.createRadialGradient(x + 15, y + 15, 2, x + 25, y + 25, 19);
+        appleGradient.addColorStop(0, "#ff8a62");
+        appleGradient.addColorStop(0.45, "#d94137");
+        appleGradient.addColorStop(1, "#7f2025");
+        ctx.fillStyle = appleGradient;
+        ctx.beginPath();
+        ctx.moveTo(x + 20, y + 14);
+        ctx.bezierCurveTo(x + 12, y + 7, x + 4, y + 13, x + 6, y + 25);
+        ctx.bezierCurveTo(x + 8, y + 36, x + 16, y + 40, x + 20, y + 36);
+        ctx.bezierCurveTo(x + 25, y + 40, x + 34, y + 35, x + 36, y + 25);
+        ctx.bezierCurveTo(x + 38, y + 13, x + 28, y + 7, x + 20, y + 14);
+        ctx.fill();
+
+        ctx.strokeStyle = "#62402a";
+        ctx.lineWidth = 3;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(x + 20, y + 14);
+        ctx.quadraticCurveTo(x + 21, y + 9, x + 24, y + 6);
+        ctx.stroke();
+
+        ctx.fillStyle = "#7fa34d";
+        ctx.beginPath();
+        ctx.ellipse(x + 28, y + 9, 7, 3.5, -0.45, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#4e7038";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x + 23, y + 11);
+        ctx.lineTo(x + 32, y + 7);
+        ctx.stroke();
+
+        ctx.fillStyle = "#ffd5a4";
+        ctx.beginPath();
+        ctx.ellipse(x + 12, y + 19, 2.5, 5, 0.3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawSnake() {
+        if (snake.length === 0) return;
+
+        if (snake.length > 1) {
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.beginPath();
+          snake.forEach((part, index) => {
+            const x = part.x * cell + cell / 2;
+            const y = part.y * cell + cell / 2;
+            if (index === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          });
+          const palette = skins[selectedSkin];
+          ctx.strokeStyle = "#18281c";
+          ctx.lineWidth = cell * 0.76;
+          ctx.stroke();
+          ctx.strokeStyle = palette.dark;
+          ctx.lineWidth = cell * 0.62;
+          ctx.stroke();
+          ctx.strokeStyle = palette.body;
+          ctx.lineWidth = cell * 0.43;
+          ctx.stroke();
+        }
+
+        const palette = skins[selectedSkin];
+        snake.slice(1, -1).forEach((part, index) => {
+          const x = part.x * cell;
+          const y = part.y * cell;
+          const before = snake[index];
+          const after = snake[index + 2];
+          ctx.strokeStyle = palette.belly;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          if (before.x !== after.x) {
+            ctx.moveTo(x + cell * 0.35, y + cell * 0.78);
+            ctx.lineTo(x + cell * 0.65, y + cell * 0.78);
+          } else {
+            ctx.moveTo(x + cell * 0.78, y + cell * 0.35);
+            ctx.lineTo(x + cell * 0.78, y + cell * 0.65);
+          }
+          ctx.stroke();
+        });
+
+        const head = snake[0];
+        const hx = head.x * cell + cell / 2;
+        const hy = head.y * cell + cell / 2;
+        ctx.fillStyle = palette.head;
+        ctx.strokeStyle = palette.outline;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(hx, hy, cell * 0.34, cell * 0.32, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        const forward = direction;
+        const side = { x: -forward.y, y: forward.x };
+        const eyes = [-1, 1].map((offset) => ({
+          x: hx + forward.x * cell * 0.12 + side.x * cell * 0.15 * offset,
+          y: hy + forward.y * cell * 0.12 + side.y * cell * 0.15 * offset,
+        }));
+
+        for (const eye of eyes) {
+          ctx.fillStyle = "#dfc66e";
+          ctx.beginPath();
+          ctx.arc(eye.x, eye.y, cell * 0.085, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#171b14";
+          ctx.beginPath();
+          ctx.ellipse(
+            eye.x + forward.x * cell * 0.025,
+            eye.y + forward.y * cell * 0.025,
+            cell * 0.025,
+            cell * 0.065,
+            0,
+            0,
+            Math.PI * 2,
+          );
+          ctx.fill();
+        }
+
+        const noseX = hx + forward.x * cell * 0.31;
+        const noseY = hy + forward.y * cell * 0.31;
+        ctx.fillStyle = "#392f24";
+        ctx.beginPath();
+        ctx.arc(noseX, noseY, cell * 0.035, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function draw() {
+        drawGrass();
+        drawApple();
+        drawSnake();
+      }
+
+      function gameLoop(timestamp) {
+        if (state !== "playing") return;
+        if (!lastFrame) lastFrame = timestamp;
+        elapsed += timestamp - lastFrame;
+        lastFrame = timestamp;
+
+        const delay = Math.max(65, 190 - score * 5);
+        if (elapsed >= delay) {
+          elapsed = 0;
+          move();
+          draw();
+        }
+        if (state === "playing") requestAnimationFrame(gameLoop);
+      }
+
+      function pauseGame() {
+        if (state === "playing") {
+          state = "paused";
+          shopButton.disabled = false;
+          pauseButton.textContent = "Resume";
+          pauseButton.setAttribute("aria-label", "Resume game");
+          showOverlay("Paused", "Take a breath. Your run is waiting.", "Resume");
+        } else if (state === "paused") {
+          state = "playing";
+          shopButton.disabled = true;
+          pauseButton.textContent = "Pause";
+          pauseButton.setAttribute("aria-label", "Pause game");
+          hideOverlay();
+          lastFrame = 0;
+          requestAnimationFrame(gameLoop);
+        }
+      }
+
+      startButton.addEventListener("click", () => {
+        if (state === "paused") {
+          pauseGame();
+        } else {
+          startGame();
+        }
+      });
+
+      pauseButton.addEventListener("click", pauseGame);
+      shopButton.addEventListener("click", openShop);
+      closeShopButton.addEventListener("click", () => shopDialog.close());
+      shopDialog.addEventListener("click", (event) => {
+        if (event.target === shopDialog) shopDialog.close();
+      });
+      privacyButton.addEventListener("click", () => privacyDialog.showModal());
+      closePrivacyButton.addEventListener("click", () => privacyDialog.close());
+      privacyDialog.addEventListener("click", (event) => {
+        if (event.target === privacyDialog) privacyDialog.close();
+      });
+
+      document.querySelectorAll("[data-dir]").forEach((button) => {
+        button.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          const directions = {
+            up: { x: 0, y: -1 },
+            down: { x: 0, y: 1 },
+            left: { x: -1, y: 0 },
+            right: { x: 1, y: 0 },
+          };
+          setDirection(directions[button.dataset.dir]);
+        });
+      });
+
+      let pointerStart = null;
+      canvas.addEventListener("pointerdown", (event) => {
+        pointerStart = { x: event.clientX, y: event.clientY };
+        canvas.setPointerCapture(event.pointerId);
+      });
+
+      canvas.addEventListener("pointerup", (event) => {
+        if (!pointerStart) return;
+        const dx = event.clientX - pointerStart.x;
+        const dy = event.clientY - pointerStart.y;
+        pointerStart = null;
+        if (Math.max(Math.abs(dx), Math.abs(dy)) < 18) return;
+        if (Math.abs(dx) > Math.abs(dy)) {
+          setDirection({ x: dx > 0 ? 1 : -1, y: 0 });
+        } else {
+          setDirection({ x: 0, y: dy > 0 ? 1 : -1 });
+        }
+      });
+
+      canvas.addEventListener("pointercancel", () => {
+        pointerStart = null;
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (shopDialog.open || privacyDialog.open) return;
+        const keys = {
+          ArrowUp: { x: 0, y: -1 },
+          ArrowDown: { x: 0, y: 1 },
+          ArrowLeft: { x: -1, y: 0 },
+          ArrowRight: { x: 1, y: 0 },
+        };
+        if (keys[event.key]) {
+          event.preventDefault();
+          setDirection(keys[event.key]);
+        } else if (event.key === " " || event.key === "Escape") {
+          event.preventDefault();
+          pauseGame();
+        } else if (event.key === "Enter" && state !== "playing" && state !== "paused") {
+          startGame();
+        }
+      });
+
+      loadProgress();
+      draw();
+    })();
+  </script>
+</body>
+</html>

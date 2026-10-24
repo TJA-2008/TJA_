@@ -1,0 +1,967 @@
+from tkinter import *
+import json
+import os
+import random
+import winsound
+from tkinter import messagebox
+
+GAME_WIDTH = 800
+GAME_HEIGHT = 600
+SPACE_SIZE = 50
+BODY_PARTS = 3
+BASE_SPEED = 200
+MIN_SPEED = 45
+SPEED_INCREASE_PER_POINT = 4
+BEST_SCORE_FILE = os.path.join(os.path.dirname(__file__), "snake_best_score.json")
+
+SKINS = {
+    "Forest": {
+        "cost": 0,
+        "body": "#789447",
+        "dark": "#435B32",
+        "head": "#A3AA70",
+        "mark": "#9AA96A",
+        "mark_dark": "#687E45",
+        "belly": "#C3B783",
+        "highlight": "#D1D19A",
+        "scale": "#31472B",
+        "outline": "#344A2C",
+    },
+    "Ocean": {
+        "cost": 35,
+        "body": "#4E9AA6",
+        "dark": "#285D70",
+        "head": "#82BAC0",
+        "mark": "#9BD1D2",
+        "mark_dark": "#397987",
+        "belly": "#B3D2C6",
+        "highlight": "#C9E6D8",
+        "scale": "#214B58",
+        "outline": "#214B58",
+    },
+    "Ember": {
+        "cost": 80,
+        "body": "#C76C42",
+        "dark": "#7B3E32",
+        "head": "#D99A62",
+        "mark": "#E6B779",
+        "mark_dark": "#A45139",
+        "belly": "#E3C19A",
+        "highlight": "#F0C68D",
+        "scale": "#60332B",
+        "outline": "#60332B",
+    },
+    "Violet": {
+        "cost": 160,
+        "body": "#8B75B5",
+        "dark": "#51416F",
+        "head": "#B1A1CE",
+        "mark": "#C8B9DF",
+        "mark_dark": "#6D578E",
+        "belly": "#D6C9E0",
+        "highlight": "#E7DDF1",
+        "scale": "#403653",
+        "outline": "#403653",
+    },
+    "Royal Gold": {
+        "cost": 300,
+        "body": "#D0A83F",
+        "dark": "#80642B",
+        "head": "#E7CB75",
+        "mark": "#F0D992",
+        "mark_dark": "#AA8030",
+        "belly": "#F0DCA3",
+        "highlight": "#FFF0B0",
+        "scale": "#5D4922",
+        "outline": "#5D4922",
+    },
+}
+FOOD_COLOR = "#B5262D"
+BACKGROUND_COLOR = "#203A2B"
+GRID_COLOR = "#34513A"
+TEXT_COLOR = "#EAF6FF"
+
+window = Tk()
+window.title("Snake Game")
+window.resizable(False, False)
+window.configure(bg=BACKGROUND_COLOR)
+
+canvas = Canvas(
+    window,
+    bg=BACKGROUND_COLOR,
+    height=GAME_HEIGHT,
+    width=GAME_WIDTH,
+    highlightthickness=0,
+)
+canvas.pack(padx=16, pady=16)
+
+score = 0
+apples = 0
+direction = "right"
+state = "start"
+best_score = 0
+unlocked_skins = {"Forest"}
+selected_skin = "Forest"
+skin_shop_window = None
+
+header = Frame(window, bg=BACKGROUND_COLOR)
+header.pack(pady=(0, 12))
+
+Label(
+    header,
+    text="SNAKE",
+    fg="#EAF6FF",
+    bg=BACKGROUND_COLOR,
+    font=("Consolas", 20, "bold"),
+).pack(side=LEFT, padx=(0, 20))
+
+label = Label(
+    header,
+    text="Score: 0",
+    fg="#FFD166",
+    bg=BACKGROUND_COLOR,
+    font=("Consolas", 18, "bold"),
+)
+label.pack(side=LEFT)
+
+apples_label = Label(
+    header,
+    text="Apples: 0",
+    fg="#F49A83",
+    bg=BACKGROUND_COLOR,
+    font=("Consolas", 16, "bold"),
+)
+apples_label.pack(side=LEFT, padx=(18, 12))
+
+skin_shop_button = Button(
+    header,
+    text="Skin Shop",
+    command=lambda: open_skin_shop(),
+    bg="#435B32",
+    fg="#EAF6FF",
+    activebackground="#587542",
+    activeforeground="#FFFFFF",
+    relief=FLAT,
+    font=("Consolas", 10, "bold"),
+    padx=10,
+    pady=6,
+)
+skin_shop_button.pack(side=LEFT)
+
+status = Label(
+    window,
+    text="Press Enter to start",
+    fg="#9AD1FF",
+    bg=BACKGROUND_COLOR,
+    font=("Consolas", 11),
+)
+status.pack(pady=(0, 8))
+
+window.update()
+window_width = window.winfo_width()
+window_height = window.winfo_height()
+screen_width = window.winfo_screenwidth()
+screen_height = window.winfo_screenheight()
+
+x = int((screen_width / 2) - (window_width / 2))
+y = int((screen_height / 2) - (window_height / 2))
+window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+
+
+def load_progress():
+    global best_score, apples, unlocked_skins, selected_skin
+    if os.path.exists(BEST_SCORE_FILE):
+        try:
+            with open(BEST_SCORE_FILE, "r", encoding="utf-8") as file:
+                data = json.load(file)
+                best_score = int(data.get("best_score", 0))
+                apples = max(0, int(data.get("apples", 0)))
+                stored_skins = data.get("unlocked_skins", ["Forest"])
+                unlocked_skins = {
+                    skin for skin in stored_skins if skin in SKINS
+                } | {"Forest"}
+                stored_selection = data.get("selected_skin", "Forest")
+                if stored_selection in unlocked_skins:
+                    selected_skin = stored_selection
+        except (ValueError, TypeError, OSError):
+            best_score = 0
+            apples = 0
+            unlocked_skins = {"Forest"}
+            selected_skin = "Forest"
+    apples_label.config(text=f"Apples: {apples}")
+
+
+def save_progress():
+    try:
+        with open(BEST_SCORE_FILE, "w", encoding="utf-8") as file:
+            json.dump(
+                {
+                    "best_score": best_score,
+                    "apples": apples,
+                    "unlocked_skins": sorted(unlocked_skins),
+                    "selected_skin": selected_skin,
+                },
+                file,
+            )
+    except OSError:
+        messagebox.showerror(
+            "Save error",
+            "Your latest score, apples, or skin selection could not be saved.",
+            parent=window,
+        )
+
+
+def play_sound(kind):
+    if kind == "eat":
+        winsound.Beep(660, 80)
+    elif kind == "game_over":
+        winsound.Beep(220, 200)
+        winsound.Beep(180, 220)
+
+
+def get_speed():
+    return max(MIN_SPEED, BASE_SPEED - score * SPEED_INCREASE_PER_POINT)
+
+
+def update_shop_button():
+    skin_shop_button.config(state=NORMAL if state != "playing" else DISABLED)
+
+
+def open_skin_shop():
+    global skin_shop_window
+    if state == "playing":
+        return
+    if skin_shop_window is not None and skin_shop_window.winfo_exists():
+        skin_shop_window.lift()
+        return
+
+    shop = Toplevel(window)
+    skin_shop_window = shop
+    shop.title("Snake Skin Shop")
+    shop.configure(bg=BACKGROUND_COLOR)
+    shop.resizable(False, False)
+    shop.transient(window)
+    shop.grab_set()
+
+    def close_shop():
+        global skin_shop_window
+        if shop.winfo_exists():
+            shop.grab_release()
+            shop.destroy()
+        skin_shop_window = None
+
+    shop.protocol("WM_DELETE_WINDOW", close_shop)
+    Label(
+        shop,
+        text="SKIN SHOP",
+        fg=TEXT_COLOR,
+        bg=BACKGROUND_COLOR,
+        font=("Consolas", 20, "bold"),
+    ).pack(padx=24, pady=(18, 4))
+    balance = Label(
+        shop,
+        text=f"Apples available: {apples}",
+        fg="#F49A83",
+        bg=BACKGROUND_COLOR,
+        font=("Consolas", 12, "bold"),
+    )
+    balance.pack(pady=(0, 12))
+
+    rows = Frame(shop, bg=BACKGROUND_COLOR)
+    rows.pack(padx=20)
+
+    def refresh_shop():
+        for child in rows.winfo_children():
+            child.destroy()
+        balance.config(text=f"Apples available: {apples}")
+
+        for name, palette in SKINS.items():
+            row = Frame(rows, bg="#29452F", padx=10, pady=8)
+            row.pack(fill=X, pady=4)
+            Canvas(
+                row,
+                width=34,
+                height=34,
+                bg="#29452F",
+                highlightthickness=0,
+            ).pack(side=LEFT, padx=(0, 10))
+            swatch = row.winfo_children()[0]
+            swatch.create_oval(
+                4, 4, 30, 30,
+                fill=palette["head"],
+                outline=palette["outline"],
+                width=2,
+            )
+            Label(
+                row,
+                text=f"{name}\n{palette['cost']} apples",
+                fg=TEXT_COLOR,
+                bg="#29452F",
+                justify=LEFT,
+                font=("Consolas", 11, "bold"),
+            ).pack(side=LEFT, padx=(0, 16))
+
+            if name in unlocked_skins:
+                button_text = "Equipped" if name == selected_skin else "Equip"
+                button_state = DISABLED if name == selected_skin else NORMAL
+            else:
+                button_text = f"Buy ({palette['cost']})"
+                button_state = NORMAL
+
+            Button(
+                row,
+                text=button_text,
+                state=button_state,
+                command=lambda skin_name=name: buy_or_equip_skin(skin_name, refresh_shop),
+                bg="#435B32",
+                fg=TEXT_COLOR,
+                activebackground="#587542",
+                activeforeground="#FFFFFF",
+                disabledforeground="#AAB6A3",
+                relief=FLAT,
+                font=("Consolas", 9, "bold"),
+                padx=8,
+                pady=5,
+            ).pack(side=RIGHT)
+
+    refresh_shop()
+    Button(
+        shop,
+        text="Close",
+        command=close_shop,
+        bg="#435B32",
+        fg=TEXT_COLOR,
+        activebackground="#587542",
+        activeforeground="#FFFFFF",
+        relief=FLAT,
+        font=("Consolas", 10, "bold"),
+        padx=14,
+        pady=6,
+    ).pack(pady=14)
+    shop.update_idletasks()
+    shop.geometry(
+        f"+{window.winfo_rootx() + (window.winfo_width() - shop.winfo_width()) // 2}"
+        f"+{window.winfo_rooty() + (window.winfo_height() - shop.winfo_height()) // 2}"
+    )
+
+
+def buy_or_equip_skin(name, refresh_shop):
+    global apples, selected_skin
+    cost = SKINS[name]["cost"]
+    if name not in unlocked_skins:
+        if apples < cost:
+            messagebox.showinfo(
+                "Not enough apples",
+                f"You need {cost - apples} more apples to unlock {name}.",
+                parent=skin_shop_window,
+            )
+            return
+        apples -= cost
+        unlocked_skins.add(name)
+
+    selected_skin = name
+    apples_label.config(text=f"Apples: {apples}")
+    save_progress()
+    refresh_shop()
+    if "snake" in globals():
+        snake.draw()
+
+
+class Snake:
+    def __init__(self):
+        self.coordinates = []
+        self.items = []
+
+        start_x = GAME_WIDTH // 2
+        start_y = GAME_HEIGHT // 2
+        for i in range(BODY_PARTS):
+            self.coordinates.append([start_x - i * SPACE_SIZE, start_y])
+        self.draw()
+
+    def draw(self):
+        palette = SKINS[selected_skin]
+        for item in self.items:
+            canvas.delete(item)
+        self.items = []
+
+        centers = [
+            (x + SPACE_SIZE // 2, y + SPACE_SIZE // 2)
+            for x, y in self.coordinates
+        ]
+        path = [coordinate for point in centers for coordinate in point]
+
+        if len(centers) > 1:
+            shadow_path = [
+                coordinate
+                for x, y in centers
+                for coordinate in (x + 2, y + 5)
+            ]
+            self.items.append(
+                canvas.create_line(
+                    *shadow_path,
+                    fill="#17261D",
+                    width=32,
+                    capstyle=ROUND,
+                    joinstyle=ROUND,
+                    smooth=True,
+                    splinesteps=12,
+                    tag="snake",
+                )
+            )
+            self.items.append(
+                canvas.create_line(
+                    *path,
+                    fill=palette["outline"],
+                    width=34,
+                    capstyle=ROUND,
+                    joinstyle=ROUND,
+                    smooth=True,
+                    splinesteps=12,
+                    tag="snake",
+                )
+            )
+            self.items.append(
+                canvas.create_line(
+                    *path,
+                    fill=palette["body"],
+                    width=28,
+                    capstyle=ROUND,
+                    joinstyle=ROUND,
+                    smooth=True,
+                    splinesteps=12,
+                    tag="snake",
+                )
+            )
+
+        for index, (x, y) in enumerate(self.coordinates[1:-1], start=1):
+            previous = centers[index - 1]
+            following = centers[index + 1]
+            dx = following[0] - previous[0]
+            dy = following[1] - previous[1]
+            if abs(dx) >= abs(dy):
+                stripe_points = (x + 25, y + 12, x + 25, y + 38)
+                belly_points = (x + 18, y + 37, x + 32, y + 37)
+            else:
+                stripe_points = (x + 12, y + 25, x + 38, y + 25)
+                belly_points = (x + 37, y + 18, x + 37, y + 32)
+
+            self.items.append(
+                canvas.create_line(
+                    *stripe_points,
+                    fill=palette["scale"],
+                    width=2,
+                    smooth=True,
+                    tag="snake",
+                )
+            )
+            self.items.append(
+                canvas.create_line(
+                    *belly_points,
+                    fill=palette["belly"],
+                    width=5,
+                    capstyle=ROUND,
+                    tag="snake",
+                )
+            )
+
+        if len(centers) > 1:
+            first_x, first_y = centers[0]
+            second_x, second_y = centers[1]
+            tail_x, tail_y = centers[-1]
+            before_tail_x, before_tail_y = centers[-2]
+            head_x, head_y = self.coordinates[0]
+            if abs(first_x - second_x) >= abs(first_y - second_y):
+                tail_side = -1 if first_x > second_x else 1
+                tail_points = (
+                    tail_x,
+                    tail_y - 7,
+                    tail_x + (12 if tail_x > before_tail_x else -12),
+                    tail_y,
+                    tail_x,
+                    tail_y + 7,
+                )
+                eye_positions = (
+                    (first_x, first_y - 8),
+                    (first_x, first_y + 8),
+                )
+                muzzle_box = (
+                    head_x + (25 if tail_side < 0 else 5),
+                    head_y + 13,
+                    head_x + (47 if tail_side < 0 else 27),
+                    head_y + 37,
+                )
+                nose_position = (
+                    head_x + (8 if tail_side < 0 else 42),
+                    head_y + 25,
+                )
+            else:
+                tail_side = -1 if first_y > second_y else 1
+                tail_points = (
+                    tail_x - 7,
+                    tail_y,
+                    tail_x,
+                    tail_y + (12 if tail_y > before_tail_y else -12),
+                    tail_x + 7,
+                    tail_y,
+                )
+                eye_positions = (
+                    (first_x - 8, first_y),
+                    (first_x + 8, first_y),
+                )
+                muzzle_box = (
+                    head_x + 13,
+                    head_y + (5 if tail_side < 0 else 25),
+                    head_x + 37,
+                    head_y + (27 if tail_side < 0 else 47),
+                )
+                nose_position = (
+                    head_x + 25,
+                    head_y + (8 if tail_side < 0 else 42),
+                )
+
+            self.items.append(
+                canvas.create_polygon(
+                    *tail_points,
+                    fill=palette["body"],
+                    outline=palette["outline"],
+                    width=1,
+                    smooth=True,
+                    tag="snake",
+                )
+            )
+            self.items.append(
+                canvas.create_oval(
+                    head_x + 5,
+                    head_y + 5,
+                    head_x + SPACE_SIZE - 5,
+                    head_y + SPACE_SIZE - 5,
+                    fill=palette["head"],
+                    outline=palette["outline"],
+                    width=2,
+                    tag="snake",
+                )
+            )
+            self.items.append(
+                canvas.create_oval(
+                    *muzzle_box,
+                    fill=palette["body"],
+                    outline=palette["outline"],
+                    width=1,
+                    tag="snake",
+                )
+            )
+            for eye_x, eye_y in eye_positions:
+                self.items.append(
+                    canvas.create_oval(
+                        eye_x - 4,
+                        eye_y - 4,
+                        eye_x + 4,
+                        eye_y + 4,
+                        fill="#D5B95E",
+                        outline=palette["outline"],
+                        width=1,
+                        tag="snake",
+                    )
+                )
+                self.items.append(
+                    canvas.create_oval(
+                        eye_x - 1,
+                        eye_y - 3,
+                        eye_x + 1,
+                        eye_y + 3,
+                        fill="#171B14",
+                        outline="",
+                        tag="snake",
+                    )
+                )
+                self.items.append(
+                    canvas.create_oval(
+                        eye_x - 2,
+                        eye_y - 2,
+                        eye_x - 1,
+                        eye_y - 1,
+                        fill="#FFFFFF",
+                        outline="",
+                        tag="snake",
+                    )
+                )
+
+            nose_x, nose_y = nose_position
+            self.items.append(
+                canvas.create_oval(
+                    nose_x - 2,
+                    nose_y - 2,
+                    nose_x + 2,
+                    nose_y + 2,
+                    fill=palette["outline"],
+                    outline="",
+                    tag="snake",
+                )
+            )
+
+
+class Food:
+    def __init__(self, snake):
+        self.coordinates = [0, 0]
+        self.items = []
+        self.change_position(snake)
+
+    def change_position(self, snake):
+        while True:
+            x = random.randint(0, (GAME_WIDTH // SPACE_SIZE) - 1) * SPACE_SIZE
+            y = random.randint(0, (GAME_HEIGHT // SPACE_SIZE) - 1) * SPACE_SIZE
+            if [x, y] not in snake.coordinates:
+                self.coordinates = [x, y]
+                break
+
+        for item in self.items:
+            canvas.delete(item)
+        x, y = self.coordinates
+        self.items = [
+            canvas.create_oval(
+                x + 10,
+                y + 39,
+                x + 41,
+                y + 47,
+                fill="#14251B",
+                outline="",
+                tag="food",
+            ),
+            canvas.create_polygon(
+                x + 25, y + 14,
+                x + 19, y + 10,
+                x + 11, y + 12,
+                x + 6, y + 19,
+                x + 7, y + 31,
+                x + 13, y + 40,
+                x + 21, y + 44,
+                x + 25, y + 42,
+                x + 29, y + 44,
+                x + 38, y + 40,
+                x + 44, y + 31,
+                x + 45, y + 19,
+                x + 40, y + 12,
+                x + 31, y + 10,
+                fill=FOOD_COLOR,
+                outline="#681E25",
+                width=2,
+                smooth=True,
+                splinesteps=12,
+                tag="food",
+            ),
+            canvas.create_oval(
+                x + 11,
+                y + 17,
+                x + 19,
+                y + 35,
+                fill="#D94A3D",
+                outline="",
+                tag="food",
+            ),
+            canvas.create_oval(
+                x + 31,
+                y + 18,
+                x + 41,
+                y + 35,
+                fill="#8F2028",
+                outline="",
+                tag="food",
+            ),
+            canvas.create_arc(
+                x + 12,
+                y + 14,
+                x + 31,
+                y + 37,
+                start=75,
+                extent=190,
+                style=ARC,
+                outline="#F17B5D",
+                width=2,
+                tag="food",
+            ),
+            canvas.create_line(
+                x + 25,
+                y + 13,
+                x + 27,
+                y + 6,
+                fill="#60432A",
+                width=4,
+                capstyle=ROUND,
+                tag="food",
+            ),
+            canvas.create_oval(
+                x + 26,
+                y + 5,
+                x + 39,
+                y + 13,
+                fill="#527A3B",
+                outline="#31502E",
+                width=1,
+                tag="food",
+            ),
+            canvas.create_line(
+                x + 28,
+                y + 10,
+                x + 37,
+                y + 8,
+                fill="#9BB66A",
+                width=1,
+                tag="food",
+            ),
+            canvas.create_oval(
+                x + 14,
+                y + 19,
+                x + 18,
+                y + 25,
+                fill="#FFD0A3",
+                outline="",
+                tag="food",
+            ),
+            canvas.create_oval(
+                x + 18,
+                y + 28,
+                x + 20,
+                y + 31,
+                fill="#8F2028",
+                outline="",
+                tag="food",
+            ),
+        ]
+
+
+def draw_board():
+    canvas.delete("board")
+    canvas.create_rectangle(
+        0,
+        0,
+        GAME_WIDTH,
+        GAME_HEIGHT,
+        fill=BACKGROUND_COLOR,
+        outline="",
+        tag="board",
+    )
+    rng = random.Random(18)
+    patch_colours = ("#29452F", "#2C4A32", "#315035", "#355337", "#263F2D")
+    blade_colours = ("#496944", "#547447", "#3A5B39", "#617B4A", "#405F3B")
+    for _ in range(34):
+        center_x = rng.randint(18, GAME_WIDTH - 18)
+        center_y = rng.randint(18, GAME_HEIGHT - 18)
+        radius_x = rng.randint(10, 29)
+        radius_y = rng.randint(5, 15)
+        canvas.create_oval(
+            center_x - radius_x,
+            center_y - radius_y,
+            center_x + radius_x,
+            center_y + radius_y,
+            fill=rng.choice(patch_colours),
+            outline="",
+            tag="board",
+        )
+
+    for _ in range(520):
+        x = rng.randint(4, GAME_WIDTH - 4)
+        y = rng.randint(5, GAME_HEIGHT - 5)
+        height = rng.randint(3, 9)
+        lean = rng.randint(-4, 4)
+        canvas.create_line(
+            x,
+            y,
+            x + lean,
+            y - height,
+            fill=rng.choice(blade_colours),
+            width=1 if height < 7 else 2,
+            tag="board",
+        )
+
+    for _ in range(90):
+        x = rng.randint(5, GAME_WIDTH - 5)
+        y = rng.randint(5, GAME_HEIGHT - 5)
+        canvas.create_oval(
+            x,
+            y,
+            x + 2,
+            y + 2,
+            fill=rng.choice(("#667A49", "#6A7545", "#405C3A")),
+            outline="",
+            tag="board",
+        )
+    canvas.create_rectangle(
+        2,
+        2,
+        GAME_WIDTH - 2,
+        GAME_HEIGHT - 2,
+        outline="#58734A",
+        width=3,
+        tag="board",
+    )
+
+
+def change_direction(new_direction):
+    global direction
+    opposite = {
+        "up": "down",
+        "down": "up",
+        "left": "right",
+        "right": "left",
+    }
+    if new_direction in opposite and opposite[new_direction] != direction:
+        direction = new_direction
+
+
+def check_collision(snake):
+    head = snake.coordinates[0]
+    return (
+        head[0] < 0
+        or head[0] >= GAME_WIDTH
+        or head[1] < 0
+        or head[1] >= GAME_HEIGHT
+        or head in snake.coordinates[1:]
+    )
+
+
+def draw_overlay(message, colour):
+    canvas.create_text(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2,
+        text=message,
+        fill=colour,
+        font=("Consolas", 34, "bold"),
+        tag="overlay",
+    )
+    canvas.create_text(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2 + 52,
+        text=f"Best score: {best_score}",
+        fill="#EAF6FF",
+        font=("Consolas", 16),
+        tag="overlay",
+    )
+
+
+def start_game():
+    global score, direction, state, skin_shop_window
+    if skin_shop_window is not None and skin_shop_window.winfo_exists():
+        skin_shop_window.destroy()
+        skin_shop_window = None
+    score = 0
+    direction = "right"
+    state = "playing"
+    update_shop_button()
+    label.config(text="Score: 0")
+    status.config(text="Use arrow keys to move")
+    canvas.delete("overlay")
+    canvas.delete("snake")
+    canvas.delete("food")
+    draw_board()
+
+    snake = Snake()
+    food = Food(snake)
+    return snake, food
+
+
+def end_game():
+    global state, best_score
+    state = "game_over"
+    if score > best_score:
+        best_score = score
+    save_progress()
+    update_shop_button()
+    play_sound("game_over")
+    draw_overlay("Game Over", "#FFB4B4")
+    status.config(text="Press Enter to play again")
+
+
+def next_turn(snake, food):
+    global score, apples
+
+    if state != "playing":
+        return
+
+    head_x, head_y = snake.coordinates[0]
+    if direction == "up":
+        next_head = [head_x, head_y - SPACE_SIZE]
+    elif direction == "down":
+        next_head = [head_x, head_y + SPACE_SIZE]
+    elif direction == "left":
+        next_head = [head_x - SPACE_SIZE, head_y]
+    else:
+        next_head = [head_x + SPACE_SIZE, head_y]
+
+    ate_food = next_head == food.coordinates
+    if check_collision(snake) or (
+        next_head[0] < 0
+        or next_head[0] >= GAME_WIDTH
+        or next_head[1] < 0
+        or next_head[1] >= GAME_HEIGHT
+        or (next_head in snake.coordinates[:-1] and not ate_food)
+    ):
+        end_game()
+        return
+
+    snake.coordinates.insert(0, next_head)
+    if ate_food:
+        score += 1
+        apples += 1
+        play_sound("eat")
+        label.config(text=f"Score: {score}")
+        apples_label.config(text=f"Apples: {apples}")
+        save_progress()
+        food.change_position(snake)
+    else:
+        snake.coordinates.pop()
+
+    snake.draw()
+    window.after(get_speed(), next_turn, snake, food)
+
+
+def on_keypress(event):
+    global snake, food
+    if event.keysym == "Return":
+        if state in ("start", "game_over"):
+            snake, food = start_game()
+            window.after(get_speed(), next_turn, snake, food)
+        return
+
+    if state != "playing":
+        return
+
+    key = event.keysym.lower()
+    if key in ("up", "down", "left", "right"):
+        change_direction(key)
+
+
+def show_start_screen():
+    canvas.delete("overlay")
+    canvas.create_text(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2 - 25,
+        text="Snake",
+        fill="#EAF6FF",
+        font=("Consolas", 40, "bold"),
+        tag="overlay",
+    )
+    canvas.create_text(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2 + 35,
+        text="Press Enter to start",
+        fill="#9AD1FF",
+        font=("Consolas", 22),
+        tag="overlay",
+    )
+    canvas.create_text(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2 + 80,
+        text=f"Best score: {best_score}",
+        fill="#FFD166",
+        font=("Consolas", 14),
+        tag="overlay",
+    )
+
+
+draw_board()
+window.bind("<KeyPress>", on_keypress)
+load_progress()
+snake = Snake()
+food = Food(snake)
+show_start_screen()
+window.mainloop()
